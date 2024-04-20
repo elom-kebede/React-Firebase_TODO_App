@@ -1,12 +1,31 @@
 import './App.css';
-import React, {useState} from 'react'
+import React, {useEffect, useState} from 'react'
+import { Button, FormControl, Input, InputLabel } from '@material-ui/core';
+import Todo from './Todo';
+import { db } from './firebase';
+import 'firebase/compat/firestore'
+import firebase from 'firebase/compat/app';
+
 
 function App() {
-  const[todos, setTodos]=useState(['Take dogs for a walk','Take the rubbish out', 'i wanna see u' ])
+  const[todos, setTodos]=useState([ ])
   const[input, setInput]=useState('')
+
+  // when the app loads, we need to listen to the database and fetch new todos as they get add/removed
+  useEffect(()=> {
+    db.collection('todos').orderBy('timestamp', 'desc').onSnapshot(snapshot=>{
+      setTodos(snapshot.docs.map(doc =>doc.data().todo))
+    })
+  },[])
 
   const addTodo =(event) => {
        event.preventDefault() // will stop the referesh
+
+       db.collection('todos').add({
+        todo:input,
+        timestamp:firebase.firestore.FieldValue.serverTimestamp()
+       })
+
        setTodos([...todos, input]) 
        setInput('') // clear up the input after clicking add button   
     }
@@ -16,14 +35,20 @@ function App() {
 
       <h1>Hello Friends</h1>
       <form action="">
-          <input value={input} onChange={event=>setInput(event.target.value)} />
-          <button type="submit" onClick={addTodo}>Add ToDo</button>
+        <FormControl>
+          <InputLabel>Write a Todo</InputLabel>
+           <Input value={input} onChange={event=>setInput(event.target.value)} />
+        </FormControl>
+          
+
+
+          <Button type="submit" disabled={!input} onClick={addTodo} variant="contained" color='primary'>Add ToDo</Button>
       </form>
       
 
       <ul>
         {todos.map(todo =>(
-          <li>{todo}</li>
+          <Todo text={todo} />
         ))}
        
       </ul>
